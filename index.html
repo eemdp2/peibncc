@@ -3,88 +3,84 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Adaptador BNCC - Estabilizado</title>
+    <title>Adaptador BNCC - Oficial</title>
     <style>
         :root { --primary: #4834d4; --secondary: #22a6b3; --bg: #f6f9fc; }
-        body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); padding: 20px; color: #30336b; }
-        .container { max-width: 800px; margin: auto; background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); }
-        h1 { text-align: center; color: var(--primary); font-size: 20px; margin-bottom: 25px; text-transform: uppercase; }
-        .form-group { margin-bottom: 15px; }
-        label { display: block; font-weight: 600; margin-bottom: 5px; font-size: 14px; }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: var(--bg); padding: 20px; color: #30336b; }
+        .container { max-width: 850px; margin: auto; background: white; padding: 35px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        h1 { text-align: center; color: var(--primary); font-size: 22px; margin-bottom: 25px; border-bottom: 2px solid #eee; padding-bottom: 15px; }
+        
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
+        label { display: block; font-weight: bold; margin-bottom: 5px; font-size: 13px; }
         input, textarea { width: 100%; padding: 12px; border: 2px solid #edeff2; border-radius: 10px; font-size: 14px; box-sizing: border-box; }
-        textarea { height: 100px; }
-        .file-area { border: 2px dashed var(--secondary); padding: 20px; text-align: center; border-radius: 10px; background: #f0fbfc; cursor: pointer; position: relative; }
-        .file-area input { position: absolute; width: 100%; height: 100%; top: 0; left: 0; opacity: 0; cursor: pointer; }
-        button.btn-executar { background: var(--primary); color: white; border: none; padding: 18px; border-radius: 10px; cursor: pointer; font-size: 16px; font-weight: bold; width: 100%; margin-top: 15px; transition: 0.3s; }
-        button:hover { background: #3c2bb3; }
-        button:disabled { background: #ccc; cursor: not-allowed; }
-        #result-area { margin-top: 30px; display: none; }
-        .result-box { background: #fff; border: 1px solid #dff9fb; padding: 20px; border-radius: 12px; border-left: 6px solid #6ab04c; white-space: pre-wrap; font-size: 15px; line-height: 1.6; }
-        .btn-copy { background: #6ab04c; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; float: right; margin-bottom: 10px; }
-        .loader { display: none; text-align: center; margin: 20px 0; font-weight: bold; color: var(--primary); }
+        textarea { height: 120px; }
+        .full-width { grid-column: span 2; }
+
+        .file-box { border: 2px dashed var(--secondary); padding: 25px; text-align: center; border-radius: 10px; background: #f0fbfc; cursor: pointer; position: relative; }
+        .file-box input { position: absolute; width: 100%; height: 100%; top: 0; left: 0; opacity: 0; cursor: pointer; }
+        
+        #btnMain { background: var(--primary); color: white; border: none; padding: 20px; border-radius: 10px; cursor: pointer; font-size: 16px; font-weight: bold; width: 100%; margin-top: 20px; transition: 0.3s; }
+        #btnMain:hover { background: #3c2bb3; transform: translateY(-2px); }
+        #btnMain:disabled { background: #ccc; transform: none; cursor: not-allowed; }
+
+        #result-area { margin-top: 40px; display: none; }
+        .result-box { background: #fff; border: 1px solid #dff9fb; padding: 25px; border-radius: 12px; border-left: 8px solid #6ab04c; white-space: pre-wrap; font-size: 15px; line-height: 1.8; color: #2d3436; }
+        .btn-copy { background: #6ab04c; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; float: right; margin-bottom: 10px; font-weight: bold; }
+        
+        .loader { display: none; text-align: center; margin: 20px 0; font-weight: bold; color: var(--primary); font-size: 16px; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>Adaptador BNCC (Imagem ou PDF)</h1>
+    <h1>Adaptador de Habilidades BNCC</h1>
     
-    <div class="form-group">
-        <label>Nome do Estudante e Disciplina</label>
-        <div style="display:flex; gap:10px;">
-            <input type="text" id="aluno" placeholder="Ex: João Silva">
-            <input type="text" id="materia" placeholder="Ex: Matemática">
+    <div class="form-row">
+        <div>
+            <label>Nome do Estudante</label>
+            <input type="text" id="aluno" placeholder="Nome completo ou primeiro nome">
+        </div>
+        <div>
+            <label>Disciplina</label>
+            <input type="text" id="materia" placeholder="Ex: Língua Portuguesa">
+        </div>
+        <div class="full-width">
+            <label>Habilidades BNCC (Código e Descrição Original)</label>
+            <textarea id="habilidades" placeholder="Cole aqui as habilidades que deseja adaptar..."></textarea>
+        </div>
+        <div class="full-width">
+            <label>Laudo/Diagnóstico (Anexe Foto ou PDF)</label>
+            <div class="file-box">
+                <span id="file-label">Clique para selecionar ou arraste o arquivo aqui</span>
+                <input type="file" id="laudo-file" accept="image/*,application/pdf" onchange="document.getElementById('file-label').innerText = 'Selecionado: ' + this.files[0].name">
+            </div>
         </div>
     </div>
 
-    <div class="form-group">
-        <label>Habilidades BNCC e Conteúdos</label>
-        <textarea id="habilidades" placeholder="Cole os códigos e textos das habilidades originais aqui..."></textarea>
-    </div>
-
-    <div class="form-group">
-        <label>Anexo (Laudo em Imagem ou PDF)</label>
-        <div class="file-area">
-            <span id="file-name">Clique para anexar arquivo</span>
-            <input type="file" id="laudo-file" accept="image/*,application/pdf" onchange="document.getElementById('file-name').innerText = this.files[0].name">
-        </div>
-    </div>
-
-    <button class="btn-executar" id="btnMain" onclick="gerar()">ADAPTAR HABILIDADES</button>
-    <div id="loader" class="loader">⏳ Lendo laudo e adaptando com IA...</div>
+    <button id="btnMain" onclick="gerarAdaptacao()">ADAPTAR HABILIDADES COM IA</button>
+    <div id="loader" class="loader">⚙️ Lendo documento e adaptando conteúdo...</div>
 
     <div id="result-area">
-        <button class="btn-copy" onclick="copiar()">📋 Copiar Tudo</button>
+        <button class="btn-copy" onclick="copiarTexto()">📋 Copiar Texto Adaptado</button>
         <div id="resultado" class="result-box"></div>
     </div>
 </div>
 
-<script type="module">
-    // IMPORTANTE: Mudança para a versão estável 0.11.0
-    import { GoogleGenerativeAI } from "https://esm.run/@google/generative-ai@0.11.0";
-
-    const API_KEY = "AIzaSyBK2WF-IkSqFmTpSPf8hZ8oWgJtaNWw8lI"; 
-    const genAI = new GoogleGenerativeAI(API_KEY);
-
-    async function fileToPart(file) {
-        return new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve({
-                inlineData: { data: reader.result.split(',')[1], mimeType: file.type }
-            });
-            reader.readAsDataURL(file);
-        });
-    }
-
-    window.gerar = async function() {
+<script>
+    async function gerarAdaptacao() {
+        const API_KEY = "AIzaSyBK2WF-IkSqFmTpSPf8hZ8oWgJtaNWw8lI";
         const fileInput = document.getElementById('laudo-file');
         const bnccInput = document.getElementById('habilidades').value;
+        const aluno = document.getElementById('aluno').value || "o estudante";
+        const materia = document.getElementById('materia').value || "a disciplina";
+        
         const loader = document.getElementById('loader');
         const resArea = document.getElementById('result-area');
+        const resDiv = document.getElementById('resultado');
         const btn = document.getElementById('btnMain');
 
         if (!fileInput.files[0] || !bnccInput) {
-            alert("Preencha as habilidades e anexe o laudo.");
+            alert("Por favor, preencha as habilidades e anexe o laudo em PDF ou Imagem.");
             return;
         }
 
@@ -93,36 +89,70 @@
         btn.disabled = true;
 
         try {
-            // MUDANÇA: Usando o nome puro do modelo e forçando versão v1beta se necessário
-            const model = genAI.getGenerativeModel({ 
-                model: "gemini-1.5-flash" 
+            // Converter arquivo para Base64 para envio multimodal
+            const reader = new FileReader();
+            const fileBase64 = await new Promise((resolve, reject) => {
+                reader.onload = () => resolve(reader.result.split(',')[1]);
+                reader.onerror = reject;
+                reader.readAsDataURL(fileInput.files[0]);
             });
-            
-            const filePart = await fileToPart(fileInput.files[0]);
 
-            const prompt = `Atue como professor de educação especial. Analise o laudo anexo. 
-            Adapte as habilidades BNCC: "${bnccInput}" para o aluno ${document.getElementById('aluno').value} em ${document.getElementById('materia').value}. 
-            REGRAS: 1. Use o prefixo ADAPTADA antes do código. 2. Simplifique a habilidade. 3. Sugira estratégia curta. 4. Sem negritos/asteriscos. 5. Use "---" entre cada uma.`;
-
-            const result = await model.generateContent([prompt, filePart]);
-            const response = await result.response;
+            const promptTexto = `Você é um especialista em educação especial e inclusiva.
+            PASSO 1: Analise o laudo/imagem anexo para entender as necessidades específicas do aluno ${aluno}.
+            PASSO 2: Adapte as seguintes habilidades da BNCC para a disciplina de ${materia}: "${bnccInput}".
             
-            document.getElementById('resultado').innerText = response.text().replace(/\*/g, '');
+            REGRAS OBRIGATÓRIAS:
+            1. Use o termo "ADAPTADA" antes do código da habilidade.
+            2. O texto deve ser simplificado, eliminando barreiras e focando no que o aluno consegue realizar.
+            3. Para cada habilidade, sugira uma estratégia pedagógica prática.
+            4. NÃO use nenhum tipo de formatação negrito ou asteriscos (*). Entregue apenas texto puro e limpo.
+            5. Use "---" para separar cada habilidade adaptada.`;
+
+            // Chamada Fetch Nativa para a API do Gemini
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{
+                        parts: [
+                            { text: promptTexto },
+                            { inline_data: { mime_type: fileInput.files[0].type, data: fileBase64 } }
+                        ]
+                    }]
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.error) {
+                throw new Error(data.error.message);
+            }
+
+            if (!data.candidates || data.candidates.length === 0) {
+                throw new Error("A IA não conseguiu gerar uma resposta. Verifique a clareza do laudo.");
+            }
+
+            const textoFinal = data.candidates[0].content.parts[0].text;
+            
+            // Limpa qualquer resquício de markdown e exibe
+            resDiv.innerText = textoFinal.replace(/\*/g, '');
             resArea.style.display = 'block';
             resArea.scrollIntoView({ behavior: 'smooth' });
 
         } catch (error) {
-            console.error(error);
-            alert("Erro: " + error.message + "\nDICA: Verifique se sua chave de API está ativa no Google AI Studio.");
+            console.error("Erro na Requisição:", error);
+            alert("Erro: " + error.message);
         } finally {
             loader.style.display = 'none';
             btn.disabled = false;
         }
     }
 
-    window.copiar = function() {
-        navigator.clipboard.writeText(document.getElementById('resultado').innerText);
-        alert("Copiado!");
+    function copiarTexto() {
+        const texto = document.getElementById('resultado').innerText;
+        navigator.clipboard.writeText(texto).then(() => {
+            alert("Habilidades adaptadas copiadas para a área de transferência!");
+        });
     }
 </script>
 
