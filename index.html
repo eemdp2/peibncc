@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Adaptador BNCC - Imagem e PDF</title>
+    <style>
+        :root { --primary: #4834d4; --secondary: #22a6b3; --success: #6ab04c; --bg: #f6f9fc; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); padding: 20px; color: #30336b; }
+        .container { max-width: 800px; margin: auto; background: white; padding: 35px; border-radius: 20px; box-shadow: 0 15px 35px rgba(0,0,0,0.05); }
+        h1 { text-align: center; font-size: 22px; margin-bottom: 30px; color: var(--primary); border-bottom: 2px solid #f1f2f6; padding-bottom: 15px; }
+        
+        .form-group { margin-bottom: 20px; }
+        label { display: block; font-weight: 600; margin-bottom: 8px; font-size: 14px; }
+        input, textarea { width: 100%; padding: 12px; border: 2px solid #edeff2; border-radius: 10px; font-size: 14px; transition: 0.3s; box-sizing: border-box; }
+        input:focus, textarea:focus { border-color: var(--primary); outline: none; background: #fff; }
+        textarea { height: 100px; resize: vertical; }
+
+        /* Estilização do Campo de Arquivo */
+        .file-drop-area { border: 2px dashed var(--secondary); padding: 25px; text-align: center; border-radius: 10px; background: #f0fbfc; cursor: pointer; transition: 0.3s; position: relative; }
+        .file-drop-area:hover { background: #e0f7f8; }
+        .file-drop-area input { position: absolute; width: 100%; height: 100%; top: 0; left: 0; opacity: 0; cursor: pointer; }
+        .file-msg { font-size: 13px; color: #535c68; }
+
+        button.btn-generate { background: var(--primary); color: white; border: none; padding: 18px; border-radius: 10px; cursor: pointer; font-size: 16px; font-weight: bold; width: 100%; margin-top: 15px; box-shadow: 0 4px 15px rgba(72, 52, 212, 0.3); }
+        button:disabled { background: #dcdde1; box-shadow: none; cursor: not-allowed; }
+
+        #result-container { margin-top: 35px; display: none; }
+        .result-box { background: #fff; border: 1px solid #dff9fb; padding: 20px; border-radius: 12px; border-left: 6px solid var(--success); white-space: pre-wrap; font-size: 15px; line-height: 1.7; position: relative; }
+        .btn-copy { background: var(--success); color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; float: right; font-size: 13px; margin-bottom: 10px; }
+        
+        .loader { display: none; text-align: center; margin: 20px 0; font-weight: bold; color: var(--primary); animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Adaptador BNCC (Laudo em Imagem ou PDF)</h1>
+    
+    <div class="form-group">
+        <label>Nome do Estudante / Disciplina</label>
+        <div style="display:flex; gap:10px;">
+            <input type="text" id="aluno" placeholder="Nome do Aluno">
+            <input type="text" id="materia" placeholder="Disciplina">
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label>Habilidades BNCC e Objetos de Conhecimento</label>
+        <textarea id="habilidades" placeholder="Cole aqui os códigos e os textos das habilidades originais..."></textarea>
+    </div>
+
+    <div class="form-group">
+        <label>Laudo do Estudante (Anexe Imagem ou PDF)</label>
+        <div class="file-drop-area">
+            <span class="file-msg" id="file-name">Clique para anexar o Laudo (PDF, JPG, PNG)</span>
+            <input type="file" id="laudo-file" accept="image/*,application/pdf" onchange="updateFileName()">
+        </div>
+    </div>
+
+    <button class="btn-generate" onclick="executarAdaptacao()">ADAPTAR HABILIDADES AGORA</button>
+
+    <div id="loader" class="loader">⚙️ A IA está a ler o laudo e a reescrever as habilidades...</div>
+
+    <div id="result-container">
+        <button class="btn-copy" onclick="copiar()">📋 Copiar Resultado</button>
+        <div id="resultado" class="result-box"></div>
+    </div>
+</div>
+
+<script type="module">
+    import { GoogleGenerativeAI } from "https://esm.run/@google/generative-ai";
+
+    // CHAVE DE API
+    const API_KEY = "AIzaSyBK2WF-IkSqFmTpSPf8hZ8oWgJtaNWw8lI"; 
+    const genAI = new GoogleGenerativeAI(API_KEY);
+
+    // Atualiza o nome do arquivo na interface
+    window.updateFileName = function() {
+        const input = document.getElementById('laudo-file');
+        const msg = document.getElementById('file-name');
+        if(input.files.length > 0) msg.innerText = "Arquivo selecionado: " + input.files[0].name;
+    };
+
+    // Converte arquivo para Base64
+    async function fileToPart(file) {
+        return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve({
+                inlineData: { data: reader.result.split(',')[1], mimeType: file.type }
+            });
+            reader.readAsDataURL(file);
+        });
+    }
+
+    window.executarAdaptacao = async function() {
+        const fileInput = document.getElementById('laudo-file');
+        const bnccText = document.getElementById('habilidades').value;
+        const loader = document.getElementById('loader');
+        const container = document.getElementById('result-container');
+        const resDiv = document.getElementById('resultado');
+
+        if (!fileInput.files[0] || !bnccText) {
+            alert("Por favor, anexe o laudo e cole as habilidades BNCC.");
+            return;
+        }
+
+        loader.style.display = 'block';
+        container.style.display = 'none';
+        document.querySelector('.btn-generate').disabled = true;
+
+        try {
+            const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+            const filePart = await fileToPart(fileInput.files[0]);
+
+            const prompt = `
+                Você é um especialista em educação inclusiva. 
+                1. Analise o documento anexo (laudo do estudante).
+                2. Adapte as seguintes habilidades BNCC: "${bnccText}"
+                3. Para cada habilidade, escreva:
+                   ADAPTADA [CÓDIGO DA HABILIDADE]: [Texto simplificado focado nas capacidades do aluno].
+                   Estratégia: [Uma orientação pedagógica prática].
+                ---
+                Regras: Mantenha o termo ADAPTADA antes do código. Remova formatação markdown como asteriscos de negrito.
+            `;
+
+            const result = await model.generateContent([prompt, filePart]);
+            const response = await result.response;
+            
+            resDiv.innerText = response.text().replace(/\*/g, '');
+            container.style.display = 'block';
+            container.scrollIntoView({ behavior: 'smooth' });
+        } catch (e) {
+            console.error(e);
+            alert("Erro ao processar. Certifique-se de que o arquivo não é muito grande (limite sugerido 4MB).");
+        } finally {
+            loader.style.display = 'none';
+            document.querySelector('.btn-generate').disabled = false;
+        }
+    }
+
+    window.copiar = function() {
+        navigator.clipboard.writeText(document.getElementById('resultado').innerText);
+        alert("Copiado com sucesso!");
+    }
+</script>
+
+</body>
+</html>
