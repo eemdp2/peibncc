@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Adaptador BNCC Pro - IA</title>
+    <title>Adaptador BNCC Pro - Versão Estável</title>
     <style>
         :root { --primary: #4834d4; --secondary: #22a6b3; --bg: #f6f9fc; }
         body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); padding: 20px; color: #30336b; }
@@ -13,17 +13,13 @@
         label { display: block; font-weight: 600; margin-bottom: 5px; font-size: 14px; }
         input, textarea { width: 100%; padding: 12px; border: 2px solid #edeff2; border-radius: 10px; font-size: 14px; box-sizing: border-box; }
         textarea { height: 100px; }
-        
         .file-area { border: 2px dashed var(--secondary); padding: 20px; text-align: center; border-radius: 10px; background: #f0fbfc; cursor: pointer; position: relative; }
         .file-area input { position: absolute; width: 100%; height: 100%; top: 0; left: 0; opacity: 0; cursor: pointer; }
-        
         button.btn-executar { background: var(--primary); color: white; border: none; padding: 18px; border-radius: 10px; cursor: pointer; font-size: 16px; font-weight: bold; width: 100%; margin-top: 15px; }
         button:disabled { background: #ccc; cursor: not-allowed; }
-
         #result-area { margin-top: 30px; display: none; }
         .result-box { background: #fff; border: 1px solid #dff9fb; padding: 20px; border-radius: 12px; border-left: 6px solid #6ab04c; white-space: pre-wrap; font-size: 15px; line-height: 1.6; }
         .btn-copy { background: #6ab04c; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; float: right; margin-bottom: 10px; }
-        
         .loader { display: none; text-align: center; margin: 20px 0; font-weight: bold; color: var(--primary); }
     </style>
 </head>
@@ -49,13 +45,12 @@
         <label>Laudo do Estudante (Imagem ou PDF)</label>
         <div class="file-area">
             <span id="file-name">Clique para anexar o Laudo (PDF, JPG, PNG)</span>
-            <input type="file" id="laudo-file" accept="image/*,application/pdf" onchange="document.getElementById('file-name').innerText = this.files[0].name">
+            <input type="file" id="laudo-file" accept="image/*,application/pdf" onchange="updateLabel()">
         </div>
     </div>
 
-    <button class="btn-executar" onclick="gerar()">ADAPTAR AGORA</button>
-
-    <div id="loader" class="loader">⏳ Processando arquivo e adaptando habilidades...</div>
+    <button class="btn-executar" id="btnMain" onclick="gerar()">ADAPTAR AGORA</button>
+    <div id="loader" class="loader">⏳ Processando arquivo e gerando adaptações...</div>
 
     <div id="result-area">
         <button class="btn-copy" onclick="copiar()">📋 Copiar Texto</button>
@@ -64,19 +59,23 @@
 </div>
 
 <script type="module">
-    import { GoogleGenerativeAI } from "https://esm.run/@google/generative-ai";
+    // Importando a versão estável específica
+    import { GoogleGenerativeAI } from "https://esm.run/@google/generative-ai@0.1.0";
 
-    // Chave de API fornecida
     const API_KEY = "AIzaSyBK2WF-IkSqFmTpSPf8hZ8oWgJtaNWw8lI"; 
     const genAI = new GoogleGenerativeAI(API_KEY);
 
+    window.updateLabel = function() {
+        const input = document.getElementById('laudo-file');
+        document.getElementById('file-name').innerText = input.files[0].name;
+    };
+
     async function fileToPart(file) {
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve) => {
             const reader = new FileReader();
             reader.onloadend = () => resolve({
                 inlineData: { data: reader.result.split(',')[1], mimeType: file.type }
             });
-            reader.onerror = reject;
             reader.readAsDataURL(file);
         });
     }
@@ -86,7 +85,7 @@
         const bnccInput = document.getElementById('habilidades').value;
         const loader = document.getElementById('loader');
         const resArea = document.getElementById('result-area');
-        const btn = document.querySelector('.btn-executar');
+        const btn = document.getElementById('btnMain');
 
         if (!fileInput.files[0] || !bnccInput) {
             alert("Por favor, preencha as habilidades e anexe o laudo.");
@@ -98,38 +97,26 @@
         btn.disabled = true;
 
         try {
-            // CORREÇÃO: Usando a versão correta do modelo e API
-            const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+            // Alteração do modelo para a versão estável "latest"
+            const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
             
             const filePart = await fileToPart(fileInput.files[0]);
 
-            const prompt = `
-                Atue como especialista em Educação Especial.
-                Analise o laudo/documento anexo.
-                Com base nele, adapte as seguintes habilidades da BNCC para o aluno(a) ${document.getElementById('aluno').value} na disciplina ${document.getElementById('materia').value}:
-                
-                "${bnccInput}"
+            const prompt = `Atue como especialista em Educação Especial. Analise o documento anexo. 
+            Com base nele, adapte as seguintes habilidades da BNCC para o aluno(a) ${document.getElementById('aluno').value} na disciplina ${document.getElementById('materia').value}: 
+            "${bnccInput}". 
+            REGRAS: 1. Insira "ADAPTADA" antes do código. 2. Simplifique para ser alcançável. 3. Sugira uma estratégia curta. 4. Sem asteriscos ou negritos. 5. Use "---" entre cada uma.`;
 
-                REGRAS:
-                1. Insira "ADAPTADA" antes do código da habilidade (ex: ADAPTADA EF01MA01).
-                2. Simplifique o texto da habilidade para ser alcançável.
-                3. Sugira uma estratégia pedagógica prática.
-                4. NÃO use asteriscos (**) nem negritos. Entregue texto limpo.
-                5. Use "---" entre cada habilidade.
-            `;
-
-            // Envio multimodal (Texto + Arquivo)
             const result = await model.generateContent([prompt, filePart]);
             const response = await result.response;
-            const finalTexto = response.text();
-
-            document.getElementById('resultado').innerText = finalTexto.replace(/\*/g, '');
+            
+            document.getElementById('resultado').innerText = response.text().replace(/\*/g, '');
             resArea.style.display = 'block';
             resArea.scrollIntoView({ behavior: 'smooth' });
 
         } catch (error) {
-            console.error("Erro completo:", error);
-            alert("Erro ao processar: " + error.message);
+            console.error(error);
+            alert("Erro na conexão com a IA: " + error.message);
         } finally {
             loader.style.display = 'none';
             btn.disabled = false;
