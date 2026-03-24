@@ -72,24 +72,27 @@
 <script type="module">
     import { GoogleGenerativeAI } from "https://esm.run/@google/generative-ai";
 
-    // CHAVE DE API
     const API_KEY = "AIzaSyBK2WF-IkSqFmTpSPf8hZ8oWgJtaNWw8lI"; 
     const genAI = new GoogleGenerativeAI(API_KEY);
 
-    // Atualiza o nome do arquivo na interface
-    window.updateFileName = function() {
-        const input = document.getElementById('laudo-file');
-        const msg = document.getElementById('file-name');
-        if(input.files.length > 0) msg.innerText = "Arquivo selecionado: " + input.files[0].name;
-    };
-
-    // Converte arquivo para Base64
+    // Função aprimorada para converter arquivo para Base64 com tratamento de erro
     async function fileToPart(file) {
-        return new Promise((resolve) => {
+        return new Promise((resolve, reject) => {
             const reader = new FileReader();
-            reader.onloadend = () => resolve({
-                inlineData: { data: reader.result.split(',')[1], mimeType: file.type }
-            });
+            reader.onloadend = () => {
+                const base64Data = reader.result.split(',')[1];
+                if (!base64Data) {
+                    reject("Erro ao ler o conteúdo do arquivo.");
+                    return;
+                }
+                resolve({
+                    inlineData: { 
+                        data: base64Data, 
+                        mimeType: file.type || "application/pdf" // Força PDF se estiver vazio
+                    }
+                });
+            };
+            reader.onerror = () => reject("Erro no leitor de arquivos.");
             reader.readAsDataURL(file);
         });
     }
@@ -97,53 +100,80 @@
     window.executarAdaptacao = async function() {
         const fileInput = document.getElementById('laudo-file');
         const bnccText = document.getElementById('habilidades').value;
+        const aluno = document.getElementById('aluno').value || "o estudante";
+        const materia = document.getElementById('materia').value || "a disciplina";
         const loader = document.getElementById('loader');
         const container = document.getElementById('result-container');
         const resDiv = document.getElementById('resultado');
+        const btn = document.querySelector('.btn-generate');
 
         if (!fileInput.files[0] || !bnccText) {
-            alert("Por favor, anexe o laudo e cole as habilidades BNCC.");
+            alert("Por favor, anexe o laudo (PDF ou Imagem) e as habilidades BNCC.");
+            return;
+        }
+
+        // Validação de tamanho (Aumentei para 10MB para garantir)
+        if (fileInput.files[0].size > 10 * 1024 * 1024) {
+            alert("O arquivo é muito grande. Tente um arquivo de até 10MB.");
             return;
         }
 
         loader.style.display = 'block';
         container.style.display = 'none';
-        document.querySelector('.btn-generate').disabled = true;
+        btn.disabled = true;
 
         try {
+            // Usando o modelo 1.5 Flash que é otimizado para multimodal (arquivos + texto)
             const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+            
             const filePart = await fileToPart(fileInput.files[0]);
 
             const prompt = `
-                Você é um especialista em educação inclusiva. 
-                1. Analise o documento anexo (laudo do estudante).
-                2. Adapte as seguintes habilidades BNCC: "${bnccText}"
-                3. Para cada habilidade, escreva:
-                   ADAPTADA [CÓDIGO DA HABILIDADE]: [Texto simplificado focado nas capacidades do aluno].
-                   Estratégia: [Uma orientação pedagógica prática].
-                ---
-                Regras: Mantenha o termo ADAPTADA antes do código. Remova formatação markdown como asteriscos de negrito.
+                Você é um especialista em educação especial e inclusiva.
+                Ação: Leia o laudo anexo e entenda as necessidades específicas de ${aluno}.
+                Tarefa: Adapte as seguintes habilidades da BNCC para a disciplina de ${materia}:
+                
+                "${bnccText}"
+
+                Instruções de Formatação:
+                1. Insira o termo "ADAPTADA" antes de cada código de habilidade.
+                2. Simplifique a linguagem e o nível de complexidade com base no laudo lido.
+                3. Adicione uma estratégia didática curta para cada uma.
+                4. NÃO use asteriscos (**) para negrito. Use texto limpo.
+                5. Separe as habilidades com "---".
             `;
 
             const result = await model.generateContent([prompt, filePart]);
             const response = await result.response;
-            
-            resDiv.innerText = response.text().replace(/\*/g, '');
+            const text = response.text();
+
+            if (!text) throw new Error("A IA não retornou resposta.");
+
+            resDiv.innerText = text.replace(/\*/g, ''); 
             container.style.display = 'block';
             container.scrollIntoView({ behavior: 'smooth' });
+
         } catch (e) {
-            console.error(e);
-            alert("Erro ao processar. Certifique-se de que o arquivo não é muito grande (limite sugerido 4MB).");
+            console.error("Erro detalhado:", e);
+            alert("Erro ao processar: " + (e.message || "Verifique sua conexão ou o formato do arquivo."));
         } finally {
             loader.style.display = 'none';
-            document.querySelector('.btn-generate').disabled = false;
+            btn.disabled = false;
         }
     }
 
     window.copiar = function() {
-        navigator.clipboard.writeText(document.getElementById('resultado').innerText);
-        alert("Copiado com sucesso!");
+        const texto = document.getElementById('resultado').innerText;
+        navigator.clipboard.writeText(texto).then(() => {
+            alert("Texto copiado para a área de transferência!");
+        });
     }
+
+    window.updateFileName = function() {
+        const input = document.getElementById('laudo-file');
+        const msg = document.getElementById('file-name');
+        if(input.files.length > 0) msg.innerText = "📄 " + input.files[0].name;
+    };
 </script>
 
 </body>
